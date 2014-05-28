@@ -44,6 +44,7 @@ class AuthCore:
 			self.username = rep['selectedProfile']['name']
 		else:
 			self.username = username
+			return ['offline']
 		return rep
 
 	def gen_shared_secret(self):

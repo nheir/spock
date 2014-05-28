@@ -1,5 +1,6 @@
 import urllib.request as request
 from urllib.error import HTTPError
+from urllib.error import URLError
 import json
 
 class YggAuth:
@@ -27,6 +28,8 @@ class YggAuth:
 	def _gen_rep(self, req):
 		try:
 			rep = request.urlopen(req)
+		except URLError:
+			return None
 		except HTTPError as reperr:
 			rep = reperr
 		data = rep.read().decode('utf-8')
