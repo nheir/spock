@@ -9,44 +9,77 @@ from spock.mcp.mcdata import (
 )
 
 #TODO: Wow this class ended up a bit of a mess, cleanup and refactor soon^TM
+from spock.utils import BufferUnderflowException
+
+
 class Packet(object):
-    def __init__(self,
-        ident = [mcdata.HANDSHAKE_STATE, mcdata.CLIENT_TO_SERVER, 0x00],
-        data = None
-    ):
-        self.__ident = list(ident)
-        #Quick hack to fake default ident
-        if len(self.__ident) == 2:
-            self.__ident.append(0x00)
-        self.__hashed_ident = tuple(self.__ident)
+    length = None
+    id = 0x00
+    state = None
+    direction = None
+
+    def __init__(self, ident=(mcdata.HANDSHAKE_STATE, mcdata.CLIENT_TO_SERVER, 0x00), data=None):
+        if isinstance(ident, str):
+            ident = mcdata.packet_idents[ident]
+
+        if len(ident) == 3:
+            self.state, self.direction, self.id = ident
+        else:
+            self.state, self.direction = ident
+
+        self.__hash_ident()
         self.data = data if data else {}
 
-    def clone(self):
-        return Packet(self.__ident, copy.deepcopy(self.data))
+    def __hash_ident(self):
+        self.__hashed_ident = (self.state, self.direction, self.id)
 
-    def ident(self, new_ident = None):
-        if new_ident:
-            self.__ident = list(new_ident)
-            self.__hashed_ident = tuple(new_ident)
+    def clone(self):
+        return Packet(ident=self.ident(), data=copy.deepcopy(self.data))
+
+    def ident(self, state=None, direction=None, id=None):
+        if state is not None:
+            self.state = state
+            self.__hashed_ident = None
+        if direction is not None:
+            self.direction = direction
+            self.__hashed_ident = None
+        if id is not None:
+            self.id = id
+            self.__hashed_ident = None
+        if self.__hashed_ident is None:
+            self.__hash_ident()
         return self.__hashed_ident
 
     def decode(self, bbuff):
         self.data = {}
-        pbuff = utils.BoundBuffer(bbuff.recv(datautils.unpack(MC_VARINT, bbuff)))
-        #Ident
-        self.__ident[2] = datautils.unpack(MC_UBYTE, pbuff)
-        self.__hashed_ident = tuple(self.__ident)
-        #Payload
-        for dtype, name in mcdata.hashed_structs[self.__hashed_ident]:
-            self.data[name] = datautils.unpack(dtype, pbuff)
-        #Extension
-        if self.__hashed_ident in hashed_extensions:
-            hashed_extensions[self.__hashed_ident].decode_extra(self, pbuff)
-        return self
+        self.length = datautils.unpack(MC_VARINT, bbuff)
+        encoded = bbuff.recv(self.length)
+        try:
+            pbuff = utils.BoundBuffer(encoded)
+
+            #Ident
+            self.id = datautils.unpack(MC_VARINT, pbuff)
+            self.__hash_ident()
+
+            #Payload
+            for dtype, name in mcdata.hashed_structs[self.__hashed_ident]:
+                try:
+                    self.data[name] = datautils.unpack(dtype, pbuff)
+                except BufferUnderflowException:
+                    raise Exception("Failed to parse field {0}:{1} from packet {2}".format(name, dtype, repr(self)))
+
+            #Extension
+            if self.__hashed_ident in hashed_extensions:
+                hashed_extensions[self.__hashed_ident].decode_extra(self, pbuff)
+
+            return self
+
+        except BufferUnderflowException:
+            raise Exception("Failed to parse packet: ", repr(self))
 
     def encode(self):
         #Ident
-        o = datautils.pack(MC_UBYTE, self.__ident[2])
+        o = datautils.pack(MC_VARINT, self.id)
         #Payload
         for dtype, name in mcdata.hashed_structs[self.__hashed_ident]:
             o += datautils.pack(dtype, self.data[name])
@@ -56,7 +89,19 @@ class Packet(object):
         return datautils.pack(MC_VARINT, len(o)) + o
 
     def __repr__(self):
-        if self.__ident[1] == mcdata.CLIENT_TO_SERVER: s = ">>>"
-        else: s = "<<<"
-        format = "[%s] %s (0x%02X, 0x%02X): %-"+str(max([len(i) for i in mcdata.hashed_names.values()])+1)+"s%s"
-        return format % (strftime("%H:%M:%S", gmtime()), s, self.__ident[0], self.__ident[2], mcdata.hashed_names[self.__hashed_ident], str(self.data))
+        if self.direction == mcdata.CLIENT_TO_SERVER:
+            s = ">>>"
+        else:
+            s = "<<<"
+
+        if self.length is None:
+            length = "?"
+        else:
+            length = str(self.length)
+
+        data = copy.copy(self.data)
+        if self.ident() == mcdata.packet_idents['PLAY<Map Chunk Bulk']:
+            del data['data']
+
+        format = "%s (0x%02X, 0x%02X) [%s]: %-"+str(max([len(i) for i in mcdata.hashed_names.values()])+1)+"s%s"
+        return format % (s, self.state, self.id, length, mcdata.hashed_names[self.__hashed_ident], str(data))

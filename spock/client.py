@@ -49,6 +49,7 @@ default_settings = [
     ('bufsize', 4096),
     ('sock_quit', True),
     ('sess_quit', True),
+    ('packet_trace', False)
 ]
 
 for index, setting in enumerate(default_settings):

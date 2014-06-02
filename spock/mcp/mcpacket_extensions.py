@@ -343,5 +343,17 @@ class ExtensionPluginMessage:
 
     def encode_extra(packet):
         o = datautils.pack(MC_SHORT, len(packet.data['data']))
-        o += data
+        o += packet.data['data']
         return o
+
+@extension(mcdata.packet_idents['PLAY<Open Window'])
+class ExtensionOpenWindow:
+    def decode_extra(packet, bbuff):
+        if packet.data['inv_type'] == 11:
+            packet.data['eid'] = datautils.unpack(MC_INT, bbuff)
+
+    def encode_extra(packet):
+        if packet.data['inv_type'] == 11:
+            return datautils.pack(MC_INT, packet.data['eid'])
+        else:
+            return ''

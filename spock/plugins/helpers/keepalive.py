@@ -1,14 +1,14 @@
+from spock.mcp.mcpacket import Packet
 from spock.mcp import mcdata, mcpacket
 
 class KeepalivePlugin:
     def __init__(self, ploader, settings):
         self.net = ploader.requires('Net')
         ploader.reg_event_handler(
-            (mcdata.PLAY_STATE, mcdata.SERVER_TO_CLIENT, 0x00),
-            self.handle00
+            mcdata.packet_idents['PLAY<Keep Alive'],
+            self.echo_keep_alive
         )
 
     #Keep Alive - Reflects data back to server
-    def handle00(self, name, packet):
-        packet.ident((mcdata.PLAY_STATE, mcdata.CLIENT_TO_SERVER, 0x00))
-        self.net.push(packet)
+    def echo_keep_alive(self, name, packet):
+        self.net.push(Packet(ident='PLAY>Keep Alive', data={'keep_alive': packet.data['keep_alive']}))

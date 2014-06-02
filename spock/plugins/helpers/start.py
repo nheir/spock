@@ -6,6 +6,7 @@ call the start() method. However, the start() method is very convenient
 for demos and tutorials, and illustrates the basic steps for initializing
 a bot.
 """
+from spock.mcp.mcpacket import Packet
 
 from spock.mcp import mcpacket, mcdata
 
@@ -16,6 +17,8 @@ class StartPlugin:
         self.client = ploader.requires('Client')
         self.net = ploader.requires('Net')
         self.auth = ploader.requires('Auth')
+
+        self.event.reg_event_handler(mcdata.packet_idents['PLAY<Spawn Position'], self.initial_spawn)
 
         setattr(self.client, 'start', self.start)
 
@@ -31,7 +34,7 @@ class StartPlugin:
 
     def handshake(self):
         self.net.push(mcpacket.Packet(
-            ident = (mcdata.HANDSHAKE_STATE, mcdata.CLIENT_TO_SERVER, 0x00),
+            ident='HANDSHAKE>Handshake',
             data = {
                 'protocol_version': mcdata.MC_PROTOCOL_VERSION,
                 'host': self.net.host,
@@ -42,6 +45,17 @@ class StartPlugin:
 
     def login_start(self):
         self.net.push(mcpacket.Packet(
-            ident = (mcdata.LOGIN_STATE, mcdata.CLIENT_TO_SERVER, 0x00),
+            ident='LOGIN>Login Start',
             data = {'name': self.auth.username},
         ))
+
+    # Initial spawn only
+    def initial_spawn(self, name, event):
+        self.event.unreg_event_handler(mcdata.packet_idents['PLAY<Spawn Position'], self.initial_spawn)
+        self.net.push(Packet(ident='PLAY>Client Settings', data={'locale': 'en_US',
+                                                                 'view_distance': 12,
+                                                                 'chat_flags': 0,
+                                                                 'chat_colors': 1,
+                                                                 'difficulty': 0,
+                                                                 'show_cape': 1}))
+        self.net.push(Packet(ident='PLAY>Client Status', data={'action': 0}))

@@ -20,6 +20,10 @@ class EventCore:
             self.event_handlers[event] = []
         self.event_handlers[event].append(handler)
 
+    def unreg_event_handler(self, event, handler):
+        if event in self.event_handlers and handler in self.event_handlers[event]:
+            self.event_handlers[event].remove(handler)
+
     def emit(self, event, data = None):
         if event not in self.event_handlers:
             self.event_handlers[event] = []

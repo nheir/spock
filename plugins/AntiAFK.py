@@ -16,11 +16,11 @@ class AntiAFKPlugin:
     def avoid_afk(self, packet):
         msg = packet.data['text'].lower()
         if ('afk plugin' in msg):
-            self.client.push(Packet(ident=0x03, data={
+            self.client.push(Packet('PLAY>Chat Message', data={
                 "text": "Hello, I am Spock_Bot, this message is to avoid AFKGC"
                 })
             )
 
     def revive(self, packet):
         if self.client.health['health']<=0:
-            self.client.push(Packet(ident=0xCD, data={'payload': 1}))
+            self.client.push(Packet(ident='PLAY>Client Status', data={'action': 0}))

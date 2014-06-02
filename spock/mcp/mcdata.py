@@ -5,10 +5,14 @@ MC_PROTOCOL_VERSION = 4
 SERVER_TO_CLIENT    = 0x00
 CLIENT_TO_SERVER    = 0x01
 
+direction_names = ["<", ">"]
+
 HANDSHAKE_STATE     = 0x00
 STATUS_STATE        = 0x01
 LOGIN_STATE         = 0x02
 PLAY_STATE          = 0x03
+
+state_names = ["HANDSHAKE", "STATUS", "LOGIN", "PLAY"]
 
 MC_BOOL             = 0x00
 MC_UBYTE            = 0x01
@@ -596,7 +600,6 @@ packet_structs = {
                 (MC_STRING, 'title'),
                 (MC_UBYTE , 'slot_count'),
                 (MC_BOOL  , 'use_title'),
-                (MC_INT   , 'eid'),
             ),
             #Close Window
             0x2E: (
@@ -865,7 +868,7 @@ packet_structs = {
                 (MC_STRING, 'locale'),
                 (MC_BYTE  , 'view_distance'),
                 (MC_BYTE  , 'chat_flags'),
-                (MC_BOOL  , 'unused'),
+                (MC_BOOL  , 'chat_colors'),
                 (MC_BYTE  , 'difficulty'),
                 (MC_BOOL  , 'show_cape'),
             ),
@@ -898,6 +901,13 @@ hashed_structs = {
     for direction in packet_structs[state]
     for packet_id in packet_structs[state][direction]
 }
+
+#Lookup packets by name
+packet_idents = {}
+for state in packet_names:
+    for direction in packet_names[state]:
+        for packet_id in packet_names[state][direction]:
+            packet_idents[state_names[state] + direction_names[direction] + packet_names[state][direction][packet_id]] = (state, direction, packet_id)
 
 #Pack the protocol more efficiently
 packet_names = tuple(tuple(packet_names[i][j] for j in (0,1)) for i in (0,1,2,3))

@@ -107,7 +107,7 @@ class AuthPlugin:
 
         rsa_cipher = PKCS1_v1_5.new(RSA.importKey(pubkey))
         self.net.push(mcpacket.Packet(
-            ident = (mcdata.LOGIN_STATE, mcdata.CLIENT_TO_SERVER, 0x01),
+            ident='LOGIN>Encryption Response',
             data = {
                 'shared_secret': rsa_cipher.encrypt(self.auth.shared_secret),
                 'verify_token': rsa_cipher.encrypt(packet.data['verify_token']),

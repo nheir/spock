@@ -10,15 +10,21 @@ class BaseTimer(object):
     def get_runs(self):
         return self.runs
 
+    def check(self):
+        raise NotImplementedError
+
+    def reset(self):
+        raise NotImplementedError
+
     def update(self):
         if self.check():
             self.fire()
 
     def fire(self):
         self.callback()
-        if self.runs>0:
-            self.runs-=1
-        if self.runs:
+        if self.runs > 0:
+            self.runs -= 1
+        if self.runs != 0:
             self.reset()
 
     def stop(self):
@@ -34,7 +40,6 @@ class EventTimer(BaseTimer):
     def countdown(self):
         count = self.end_time - time.time()
         return count if count > 0 else 0
-
 
     def check(self):
         if self.runs == 0: return False
@@ -72,8 +77,9 @@ class TimerCore:
     def get_timeout(self):
         timeout = -1
         for timer in self.timers:
-            if timeout > timer.countdown() or timeout == -1:
-                    timeout = timer.countdown()
+            countdown = timer.countdown()
+            if timeout > countdown or timeout == -1:
+                    timeout = countdown
         return timeout
 
     def reg_event_timer(self, wait_time, callback, runs = 1):
