@@ -44,7 +44,7 @@ class AuthCore:
 			self.username = rep['selectedProfile']['name']
 		else:
 			self.username = username
-		return rep
+		return ''
 
 	def gen_shared_secret(self):
 		self.shared_secret = Random._UserFriendlyRNG.get_random_bytes(16)

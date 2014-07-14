@@ -5,6 +5,7 @@ from spock import utils
 from spock.utils import pl_announce
 from spock.mcp import mcpacket, mcdata
 from Crypto.Cipher import AES
+from time import gmtime, strftime
 
 class AESCipher:
 	def __init__(self, SharedSecret):
